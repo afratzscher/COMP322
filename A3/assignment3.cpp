@@ -1,3 +1,12 @@
+//Assignment 3 COMP322
+//Name: Anne-Sophie Fratzscher
+//ID: 260705446
+
+// how to compile: g++ -o a3.out assignment3.cpp
+// how to run: ./a3.out
+
+//NOTE: tested with valgrind for memory leak -> confirmed no memory leak
+
 #include <iostream>
 #include <vector>
 #include <ctime>
@@ -100,23 +109,24 @@ public:
 	int getTotal() const
 	{
 		int sum = 0; // allows returning 0 if empty hand...
-		for(int i = 0; i < aHand.size(); i++){
+
+		//sum first (assuming ace = 1)
+		for(int i = 0; i < aHand.size(); i++)
+		{
 			Card temp = aHand[i];
-			// need to account for if want ace to be 1 or 11
+			sum += temp.getValue();
+		}
+
+		//repeat for ace
+		for(int i = 0; i < aHand.size(); i++)
+		{
+			Card temp = aHand[i];
 			if (temp.getValue() == 1)
 			{
-				if(sum <=10) // if adding leads to < 21, add 11
+				if(sum <=11) // if adding leads to < 21, add 11 (do +10 b/c already did +1 earlier)
 				{
-					sum+=11;
+					sum+=10;
 				}
-				else // if adding leads to >21, add 1
-				{	
-					sum+=1;
-				}
-			}
-			else // if NOT ace, just add value
-			{
-				sum += temp.getValue();
 			}
 		}
 		return sum;
@@ -130,7 +140,23 @@ public:
 			cout<<" ";
 		}
 	}
+
+	// print hand
+	friend ostream& operator<<(ostream& os, const Hand& pHand); 
 };
+
+
+// prints hand using"<<"
+ostream& operator<<(ostream& os, const Hand& pHand)
+{
+	for (int i = 0; i < pHand.aHand.size(); i++)
+	{
+		Card temp = pHand.aHand[i];
+		os<<temp<<" ";
+
+	}
+	return os;
+}
 
 class Deck: public Hand
 {
@@ -209,6 +235,7 @@ public:
 	}
 };
 
+
 class ComputerPlayer: public AbstractPlayer
 {
 public:
@@ -224,11 +251,12 @@ public:
 		// cout<<"Computer destructor"<<endl;
 	}
 
-	//check if busted (busted if exceeds 16)
-	bool isDrawing() const 
+	// check if is drawing TO DO
+	bool isDrawing() const
 	{
-		return aHand.getTotal()<=16;
-	}	
+		cout<<"is drawing"<<endl;
+		return true;
+	}
 
 	//get total for computer
 	int getTotal()
@@ -241,7 +269,18 @@ public:
 	{
 		return aHand;
 	}
+
+	friend ostream& operator<<(ostream& os, const ComputerPlayer &pComputer); 
 };
+
+// print casino hand + total value using "<<"
+ostream& operator<<(ostream& os, const ComputerPlayer &pComputer)
+{
+	os<<"Casino: ";
+	os<<pComputer.aHand;
+	os<<"["<<pComputer.aHand.getTotal()<<"]"<<endl;
+	return os;
+}
 
 class HumanPlayer: public AbstractPlayer
 {
@@ -258,19 +297,19 @@ public:
 		// cout<<"Human destructor"<<endl;
 	}
 
-	//check if busted -> busted if exceeds 21 
-	bool isDrawing() const 
+	//checks if want to continue drawing... 
+	bool isDrawing() const  // TO DO
 	{
-		return aHand.getTotal()<=21;
+		return true;
 	}
 
 	//announce
 	void announce(ComputerPlayer pPlayer)
 	{
 		if (this->isBusted()) // casino wins b/c player busts
-			cout<<"Casino wins."<<endl;
+			cout<<"Player busts."<<endl<<"Casino wins."<<endl;
 		else if (pPlayer.isBusted()) // player wins b/c casino busts
-			cout<<"Player wins."<<endl;
+			cout<<"Casino busts."<<endl<<"Player wins."<<endl;
 		else if (pPlayer.getTotal() == aHand.getTotal()) // same score, so push
 			cout<<"Push: No one wins."<<endl;
 		else if (pPlayer.getTotal() > aHand.getTotal()) // casino > player
@@ -284,10 +323,134 @@ public:
 	{
 		return aHand;
 	}
+
+	friend ostream& operator<<(ostream& os, const HumanPlayer &pHuman);
+};
+
+// print Human player hand + total value using "<<"
+ostream& operator<<(ostream& os, const  HumanPlayer &pHuman)
+{
+	os<<"Player: ";
+	os<<pHuman.aHand;
+	os<<"["<<pHuman.aHand.getTotal()<<"]"<<endl;
+	return os;
+}
+
+class BlackJackGame
+{
+private:
+	Deck m_deck;
+	ComputerPlayer m_casino;
+	HumanPlayer m_client;
+public:
+	//constructor
+	BlackJackGame()
+	{
+		// cout<<"BJ const"<<endl;
+	}
+	~BlackJackGame()
+	{
+		// cout<<"BJ destruct"<<endl;
+	}
+
+	//initializes each round
+	void initialize()
+	{
+		// initialize -> creates human player, computer player, shuffled deck
+		m_client = HumanPlayer();
+		m_casino = ComputerPlayer();
+		m_deck = Deck();
+		m_deck.populate();
+		m_deck.shuffle();
+	}
+
+	// plays a round
+	void play()
+	{
+		initialize();
+		// 1 card for casino
+		m_casino.getHand().add(Card(Rank(QUEEN), Type(SPADES)));
+		// m_deck.deal(m_casino.getHand());
+		cout<<m_casino;
+
+		// 2 cards for player
+		m_client.getHand().add(Card(Rank(FOUR), Type(CLUBS)));
+		m_client.getHand().add(Card(Rank(FOUR), Type(HEARTS)));
+		// m_deck.deal(m_client.getHand());
+		// m_deck.deal(m_client.getHand());
+		cout<<m_client;
+
+		//ask if want to draw
+		char answer = 'y';
+		bool toDraw = true;
+		bool busted = false;
+		int i = 0;
+
+		// let player draw as long as they want
+		while (toDraw)
+		{
+			cout<<"Do you want to draw? (y/n): ";
+			cin >> answer;
+			if (answer == 'y' || answer == 'Y')
+			{
+				if(i == 0)
+					m_client.getHand().add(Card(Rank(THREE), Type(SPADES)));
+				else if (i==1)
+					m_client.getHand().add(Card(Rank(JACK), Type(CLUBS)));
+				else if (i==2)
+					m_client.getHand().add(Card(Rank(FOUR), Type(HEARTS)));
+				// m_deck.deal(m_client.getHand());
+				cout<<m_client;
+				i++;
+				// if drawing leads to bust, stop drawing and end game...
+				if (m_client.isBusted())
+				{
+					m_client.announce(m_casino);
+					toDraw = false;
+					busted = true;
+				}
+				if (m_client.getHand().getTotal() == 21) // if have exactly 21, let casino draw
+				{
+					toDraw = false;
+				}
+			}
+			else if (answer == 'n' || answer == 'N')
+			{
+				toDraw = false;
+			}
+			else // account for mistake
+			{
+				cout<<"Invalid input. Please try again."<<endl;
+				cin.clear();
+				fflush(stdin);
+			}
+		}
+		//then let computer draw (if player didnt bust) as long as capable (as long <= 16)
+		if (!busted)
+		{	
+			int i = 0;
+			cout<<"Casino drawing..."<<endl;
+			while(!m_casino.isBusted() && m_casino.getHand().getTotal() <= 16)
+			{
+				if (i==0)
+					m_casino.getHand().add(Card(Rank(ACE), Type(HEARTS)));
+				else if (i==1)
+					m_casino.getHand().add(Card(Rank(THREE), Type(SPADES)));
+				else if (i==2)
+					m_casino.getHand().add(Card(Rank(KING), Type(SPADES)));
+				// m_deck.deal(m_casino.getHand());
+				cout<<m_casino;
+				i++;
+			}
+			m_client.announce(m_casino);
+		}		
+	}
 };
 
 int main()
 {
+	BlackJackGame game = BlackJackGame();
+	game.play();
 // 	Card test = Card(Rank(TWO), Type(DIAMONDS));
 // 	Card test2 = Card(Rank(ACE), Type(DIAMONDS));
 // 	// cout<<test;
@@ -309,41 +472,26 @@ int main()
 	// newHand.view();
 	// cout<<endl;
 	// cout<<newDeck.size();
-	ComputerPlayer comp = ComputerPlayer();
-	HumanPlayer hum = HumanPlayer();
-	Deck newDeck = Deck();
-	newDeck.populate();
-	newDeck.shuffle();
-	cout<<newDeck.size()<<endl;
-	newDeck.deal(comp.getHand());
-	cout<<newDeck.size()<<endl;
-	comp.getHand().view();
-	cout<<comp.getTotal();
-	cout<<endl;
-	newDeck.deal(comp.getHand());
-	cout<<newDeck.size()<<endl;
-	comp.getHand().view();
-	cout<<comp.getTotal();
-	cout<<endl;
-	hum.announce(comp);
+
+	// ComputerPlayer comp = ComputerPlayer();
+	// HumanPlayer hum = HumanPlayer();
+	// Deck newDeck = Deck();
+	// newDeck.populate();
+	// newDeck.shuffle();
+	// cout<<newDeck.size()<<endl;
+	// newDeck.deal(comp.getHand());
+	// cout<<newDeck.size()<<endl;
+	// comp.getHand().view();
+	// cout<<comp.getTotal();
+	// cout<<endl;
+	// newDeck.deal(comp.getHand());
+	// cout<<newDeck.size()<<endl;
+	// comp.getHand().view();
+	// cout<<comp.getTotal();
+	// cout<<endl;
+	// hum.announce(comp);
 
 
-
-	// newHand.size();
-	// cout<<"Total: "<<newHand.getTotal()<<endl;
-
-
-
-	// cout<<"here"<<endl;
-
-	// for (inti = Type::CLUBS, i<=Type::SPADES;i++)
-	// {
-	// 	for (int j = Rank::ACE; j<=Rank::KING; j++)
-	// 	{
-	// 		Card test = 
-	// 	}
-	// }
-	// , Type DIAMOND);
 	// cout << "\tWelcome to the COMP322 Blackjack game!" << endl << endl;
 	// BlackJackGame game;
 
