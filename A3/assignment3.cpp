@@ -41,6 +41,7 @@ public:
 	friend ostream& operator<<(ostream& os, const Card& pCard); 
 };
 
+// prints card rank and suit using "<<"
 ostream& operator<<(ostream& os, const Card& pCard)
 {
 	// outputs card value
@@ -63,7 +64,6 @@ ostream& operator<<(ostream& os, const Card& pCard)
 	else
 		os<<"S";
 	return os;
-
 }
 
 class Hand
@@ -97,12 +97,13 @@ public:
 		return aHand.size();
 	}
 	//get total numerical values
-	int getTotal()
+	int getTotal() const
 	{
 		int sum = 0; // allows returning 0 if empty hand...
 		for(int i = 0; i < aHand.size(); i++){
+			Card temp = aHand[i];
 			// need to account for if want ace to be 1 or 11
-			if (aHand[i].getValue() == 1)
+			if (temp.getValue() == 1)
 			{
 				if(sum <=10) // if adding leads to < 21, add 11
 				{
@@ -115,7 +116,7 @@ public:
 			}
 			else // if NOT ace, just add value
 			{
-				sum += aHand[i].getValue();
+				sum += temp.getValue();
 			}
 		}
 		return sum;
@@ -129,7 +130,6 @@ public:
 			cout<<" ";
 		}
 	}
-
 };
 
 class Deck: public Hand
@@ -182,29 +182,152 @@ public:
 	}
 };
 
-int main(){
-// {
+class AbstractPlayer
+{
+protected:
+	Hand aHand;
+public:
+	//constructor
+	AbstractPlayer() 
+	{
+		// cout<<"constructor abstract"<<endl;
+	};
+
+	//destructor
+	virtual ~AbstractPlayer()
+	{
+		// cout<<"destructor abstract"<<endl;
+	}
+
+	//indicates if player wants to draw new card (T?F)
+	virtual bool isDrawing() const = 0;
+
+	//returns if busted or not (T/F)
+	virtual bool isBusted()
+	{
+		return aHand.getTotal() > 21;
+	}
+};
+
+class ComputerPlayer: public AbstractPlayer
+{
+public:
+	//constructor
+	ComputerPlayer()
+	{
+		// cout<<"Computer constructor"<<endl;
+	}
+
+	//destructor
+	~ComputerPlayer()
+	{
+		// cout<<"Computer destructor"<<endl;
+	}
+
+	//check if busted (busted if exceeds 16)
+	bool isDrawing() const 
+	{
+		return aHand.getTotal()<=16;
+	}	
+
+	//get total for computer
+	int getTotal()
+	{
+		return aHand.getTotal();
+	}
+
+	//get hand (for drawing)
+	Hand& getHand()
+	{
+		return aHand;
+	}
+};
+
+class HumanPlayer: public AbstractPlayer
+{
+public:
+	//constructor
+	HumanPlayer()
+	{
+		// cout<<"Human constructor"<<endl;
+	}
+
+	//destructor
+	~HumanPlayer()
+	{
+		// cout<<"Human destructor"<<endl;
+	}
+
+	//check if busted -> busted if exceeds 21 
+	bool isDrawing() const 
+	{
+		return aHand.getTotal()<=21;
+	}
+
+	//announce
+	void announce(ComputerPlayer pPlayer)
+	{
+		if (this->isBusted()) // casino wins b/c player busts
+			cout<<"Casino wins."<<endl;
+		else if (pPlayer.isBusted()) // player wins b/c casino busts
+			cout<<"Player wins."<<endl;
+		else if (pPlayer.getTotal() == aHand.getTotal()) // same score, so push
+			cout<<"Push: No one wins."<<endl;
+		else if (pPlayer.getTotal() > aHand.getTotal()) // casino > player
+			cout<<"Casino wins."<<endl; 
+		else if (pPlayer.getTotal() < aHand.getTotal()) // casino < player
+			cout<<"Player wins."<<endl;
+	}
+
+	//get hand (for drawing)
+	Hand& getHand()
+	{
+		return aHand;
+	}
+};
+
+int main()
+{
 // 	Card test = Card(Rank(TWO), Type(DIAMONDS));
 // 	Card test2 = Card(Rank(ACE), Type(DIAMONDS));
 // 	// cout<<test;
 // 	test.displayCard();
 // 	cout<<endl;
-	Hand newHand = Hand();
-	cout<<"hand SIZE: "<<newHand.size()<<endl;
+	// Hand newHand = Hand();
+	// cout<<"hand SIZE: "<<newHand.size()<<endl;
+	// Deck newDeck = Deck();
+	// newDeck.populate();
+	// newDeck.size();
+	// newDeck.shuffle();
+	// cout<<"deck SIZE: "<<newDeck.size()<<endl;
+	// newHand.view();
+	// cout<<"here"<<endl;
+	// newDeck.deal(newHand);
+	// newHand.view();
+	// cout<<endl;
+	// newDeck.deal(newHand);
+	// newHand.view();
+	// cout<<endl;
+	// cout<<newDeck.size();
+	ComputerPlayer comp = ComputerPlayer();
+	HumanPlayer hum = HumanPlayer();
 	Deck newDeck = Deck();
 	newDeck.populate();
-	newDeck.size();
 	newDeck.shuffle();
-	cout<<"deck SIZE: "<<newDeck.size()<<endl;
-	newHand.view();
-	cout<<"here"<<endl;
-	newDeck.deal(newHand);
-	newHand.view();
+	cout<<newDeck.size()<<endl;
+	newDeck.deal(comp.getHand());
+	cout<<newDeck.size()<<endl;
+	comp.getHand().view();
+	cout<<comp.getTotal();
 	cout<<endl;
-	newDeck.deal(newHand);
-	newHand.view();
+	newDeck.deal(comp.getHand());
+	cout<<newDeck.size()<<endl;
+	comp.getHand().view();
+	cout<<comp.getTotal();
 	cout<<endl;
-	cout<<newDeck.size();
+	hum.announce(comp);
+
+
 
 	// newHand.size();
 	// cout<<"Total: "<<newHand.getTotal()<<endl;
