@@ -254,8 +254,11 @@ public:
 	// check if is drawing TO DO
 	bool isDrawing() const
 	{
-		cout<<"is drawing"<<endl;
-		return true;
+		if(aHand.getTotal() <= 16)
+		{
+			return true;
+		} 
+		return false;
 	}
 
 	//get total for computer
@@ -300,7 +303,27 @@ public:
 	//checks if want to continue drawing... 
 	bool isDrawing() const  // TO DO
 	{
-		return true;
+		char answer; 
+		while(true)
+		{
+			cout<<"Do you want to draw? (y/n): ";
+			cin >> answer;
+			if (answer == 'y' || answer == 'Y')
+			{
+				return true;
+			}
+			else if (answer == 'n' || answer == 'N')
+			{
+				return false;
+			}
+			else
+			{
+				cout<<"Invalid input. Please try again."<<endl;
+				cin.clear();
+				fflush(stdin);
+				//loops until either returns true or false...
+			}
+		}
 	}
 
 	//announce
@@ -369,60 +392,44 @@ public:
 	{
 		initialize();
 		// 1 card for casino
-		m_casino.getHand().add(Card(Rank(QUEEN), Type(SPADES)));
+		m_casino.getHand().add(Card(Rank(EIGHT), Type(SPADES)));
 		// m_deck.deal(m_casino.getHand());
 		cout<<m_casino;
 
 		// 2 cards for player
 		m_client.getHand().add(Card(Rank(FOUR), Type(CLUBS)));
-		m_client.getHand().add(Card(Rank(FOUR), Type(HEARTS)));
+		m_client.getHand().add(Card(Rank(NINE), Type(HEARTS)));
 		// m_deck.deal(m_client.getHand());
 		// m_deck.deal(m_client.getHand());
 		cout<<m_client;
 
 		//ask if want to draw
 		char answer = 'y';
-		bool toDraw = true;
 		bool busted = false;
 		int i = 0;
 
 		// let player draw as long as they want
-		while (toDraw)
+		while (m_client.isDrawing())
 		{
-			cout<<"Do you want to draw? (y/n): ";
-			cin >> answer;
-			if (answer == 'y' || answer == 'Y')
+			if(i == 0)
+				m_client.getHand().add(Card(Rank(SEVEN), Type(DIAMONDS)));
+			else if (i==1)
+				m_client.getHand().add(Card(Rank(ACE), Type(HEARTS)));
+			else if (i==2)
+				m_client.getHand().add(Card(Rank(FOUR), Type(HEARTS)));
+			// m_deck.deal(m_client.getHand());
+			cout<<m_client;
+			i++;
+			// if drawing leads to bust, stop drawing and end game...
+			if (m_client.isBusted())
 			{
-				if(i == 0)
-					m_client.getHand().add(Card(Rank(THREE), Type(SPADES)));
-				else if (i==1)
-					m_client.getHand().add(Card(Rank(JACK), Type(CLUBS)));
-				else if (i==2)
-					m_client.getHand().add(Card(Rank(FOUR), Type(HEARTS)));
-				// m_deck.deal(m_client.getHand());
-				cout<<m_client;
-				i++;
-				// if drawing leads to bust, stop drawing and end game...
-				if (m_client.isBusted())
-				{
-					m_client.announce(m_casino);
-					toDraw = false;
-					busted = true;
-				}
-				if (m_client.getHand().getTotal() == 21) // if have exactly 21, let casino draw
-				{
-					toDraw = false;
-				}
+				m_client.announce(m_casino);
+				busted = true;
+				break;
 			}
-			else if (answer == 'n' || answer == 'N')
+			if (m_client.getHand().getTotal() == 21) // if have exactly 21, let casino draw
 			{
-				toDraw = false;
-			}
-			else // account for mistake
-			{
-				cout<<"Invalid input. Please try again."<<endl;
-				cin.clear();
-				fflush(stdin);
+				break;
 			}
 		}
 		//then let computer draw (if player didnt bust) as long as capable (as long <= 16)
@@ -430,27 +437,31 @@ public:
 		{	
 			int i = 0;
 			cout<<"Casino drawing..."<<endl;
-			while(!m_casino.isBusted() && m_casino.getHand().getTotal() <= 16)
+			while(m_casino.isDrawing() && !m_casino.isBusted())
 			{
 				if (i==0)
-					m_casino.getHand().add(Card(Rank(ACE), Type(HEARTS)));
+					m_casino.getHand().add(Card(Rank(EIGHT), Type(HEARTS)));
 				else if (i==1)
-					m_casino.getHand().add(Card(Rank(THREE), Type(SPADES)));
+					m_casino.getHand().add(Card(Rank(NINE), Type(SPADES)));
 				else if (i==2)
 					m_casino.getHand().add(Card(Rank(KING), Type(SPADES)));
+				else if (i==3)
+					m_casino.getHand().add(Card(Rank(ACE), Type(SPADES)));
+				else if (i==4)
+					m_casino.getHand().add(Card(Rank(ACE), Type(SPADES)));
 				// m_deck.deal(m_casino.getHand());
 				cout<<m_casino;
 				i++;
 			}
 			m_client.announce(m_casino);
+			return;
 		}		
 	}
 };
 
 int main()
 {
-	BlackJackGame game = BlackJackGame();
-	game.play();
+	
 // 	Card test = Card(Rank(TWO), Type(DIAMONDS));
 // 	Card test2 = Card(Rank(ACE), Type(DIAMONDS));
 // 	// cout<<test;
@@ -492,23 +503,23 @@ int main()
 	// hum.announce(comp);
 
 
-	// cout << "\tWelcome to the COMP322 Blackjack game!" << endl << endl;
-	// BlackJackGame game;
+	cout << "\tWelcome to the COMP322 Blackjack game!" << endl << endl;
+	BlackJackGame game;
 
-	// // the main loop of the game
-	// bool playAgain = true;
-	// char answer = 'y';
-	// while (playAgain)
-	// {
-	// 	game.play();
+	// the main loop of the game
+	bool playAgain = true;
+	char answer = 'y';
+	while (playAgain)
+	{
+		game.play();
 
-	// 	// Check whether the player would like to play another round
-	// 	cout << "Would you like another round? (y/n): ";
-	// 	cin >> answer;
-	// 	cout << endl << endl;
-	// 	playAgain = (answer == 'y' ? true : false);
-	// }
+		// Check whether the player would like to play another round
+		cout<<"----------------"<<endl;
+		cout << "Would you like another round? (y/n): ";
+		cin >> answer;
+		playAgain = (answer == 'y' ? true : false);
+	}
 
-	// cout << "Game over!";
-	// return 0;
+	cout<<"Game over!"<<endl;
+	return 0;
 }
