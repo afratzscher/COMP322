@@ -5,7 +5,22 @@
 // how to compile: g++ -o a3.out assignment3.cpp
 // how to run: ./a3.out
 
-//NOTE: tested with valgrind for memory leak -> confirmed no memory leak
+//NOTE 1: each round starts with 52 cards, meaning that, after a round, all cards are returned and shuffled 
+// (ie. the probability of drawing a card in first draw is the same for every round)
+
+//NOTE 2: numbered cards have face value (10 = 10 points, 9 = 9 points, ...),
+// ace can count as 1 or 11 points (depending on other cards -> automatically picks best),
+// and face card (J,Q,K) count for 10 points each
+
+//NOTE 3: tested with valgrind for memory leak -> confirmed no memory leak
+	//valgrind --leak-check=full \
+         --show-leak-kinds=all \
+         --track-origins=yes \
+         --verbose \
+         ./a3.out
+
+//NOTE 4: in case you are reading this, thank you for the great course and semester! 
+         //I had a blast learning C++ :) 
 
 #include <iostream>
 #include <vector>
@@ -18,8 +33,8 @@ enum Type {CLUBS=1,DIAMONDS,HEARTS,SPADES};
 class Card
 {
 private:
-	Rank aRank;
-	Type aType;
+	Rank aRank; // rank of card (1, 2, 3, ... J, Q, K)
+	Type aType; // suit of card (C, D, H, S)
 public:
 	//constructor
 	Card (enum Rank pRank, enum Type pType)
@@ -28,12 +43,14 @@ public:
 		this->aRank = pRank;
 		this->aType = pType;
 	}
-	//destructor
-	~Card()
+
+	//destructor (default)
+	~Card() 
 	{
 		// cout<<"card destructor"<<endl;
 	}
-	// returns value
+
+	// returns value of card
 	int getValue(){
 		if (aRank<=10){
 			return aRank; // for # cards
@@ -42,6 +59,7 @@ public:
 			return 10; // for face cards
 		}
 	}
+
 	//display card using overloaded << operator
 	void displayCard(){
 		cout<<(*this);
@@ -54,6 +72,7 @@ public:
 ostream& operator<<(ostream& os, const Card& pCard)
 {
 	// outputs card value
+	// NOTE: ace outputted as "1" instead of "A"
 	if(pCard.aRank <= 10)
 		os<<pCard.aRank;
 	else if (pCard.aRank == 11)
@@ -78,70 +97,61 @@ ostream& operator<<(ostream& os, const Card& pCard)
 class Hand
 {
 protected:
-	std::vector<Card> aHand;
+	std::vector<Card> aHand; // vector holding cards
 public:
-	//constructor
+	//constructor (default)
 	Hand() 
 	{
 		// cout<<"hand constructor"<<endl;
 	}
-	// destructor
+	
+	// destructor (default)
 	virtual ~Hand()
 	{
 		// cout<<"hand destructor"<<endl;
 	}
-	//add card
+
+	//add card to hand
 	void add(Card pCard)
 	{
 		aHand.push_back(pCard);
 	}
-	//clear 
+
+	//clear (empty hand)
 	void clear()
 	{
-		aHand.clear(); // built-in function for vector
+		aHand.clear(); // clear is built-in function for vector
 	}
-	//size of hand
-	int size()
-	{
-		return aHand.size();
-	}
-	//get total numerical values
+
+	//get total numerical value of all cards in hand
 	int getTotal() const
 	{
 		int sum = 0; // allows returning 0 if empty hand...
 
-		//sum first (assuming ace = 1)
+		//sum everything first (assuming ace = 1)
 		for(int i = 0; i < aHand.size(); i++)
 		{
 			Card temp = aHand[i];
 			sum += temp.getValue();
 		}
 
-		//repeat for ace
+		//repeat for aces (decide if ace = 1 or 11)
 		for(int i = 0; i < aHand.size(); i++)
 		{
 			Card temp = aHand[i];
 			if (temp.getValue() == 1)
 			{
-				if(sum <=11) // if adding leads to < 21, add 11 (do +10 b/c already did +1 earlier)
+				if(sum <=11) // if adding leads to < 21, ace is 11 (do +10 b/c already did +1 earlier)
 				{
 					sum+=10;
-				}
+				} 
+				// otherwise, dont do anything
 			}
 		}
 		return sum;
 	}
 
-	// view hand
-	void view()
-	{
-		for(int i = 0; i < aHand.size(); i++){
-			aHand[i].displayCard();
-			cout<<" ";
-		}
-	}
-
-	// print hand
+	// print hand using <<
 	friend ostream& operator<<(ostream& os, const Hand& pHand); 
 };
 
@@ -161,14 +171,14 @@ ostream& operator<<(ostream& os, const Hand& pHand)
 class Deck: public Hand
 {
 public:
-	//constructor
+	//constructor (default)
 	Deck()
 	{
 		// cout<<"deck constructor"<<endl;
 	}
 
-	//destructor
-	~Deck()
+	//destructor (default)
+	~Deck() 
 	{
 		// cout<<"Deck destructor"<<endl;
 	}
@@ -186,7 +196,7 @@ public:
 		}
 	}
 
-	//shuffles deck
+	//shuffles deck using rand
 	void shuffle()
 	{
 		srand(time(NULL));
@@ -200,7 +210,7 @@ public:
 		}
 	}
 
-	//deals a card from the deck
+	//deals ONE card from the deck
 	void deal(Hand& pHand)
 	{
 		pHand.add(this->aHand.back()); // access last element in vector
@@ -213,22 +223,23 @@ class AbstractPlayer
 protected:
 	Hand aHand;
 public:
-	//constructor
+	//constructor (default)
 	AbstractPlayer() 
 	{
 		// cout<<"constructor abstract"<<endl;
 	};
 
-	//destructor
+	//destructor (default)
 	virtual ~AbstractPlayer()
 	{
 		// cout<<"destructor abstract"<<endl;
 	}
 
-	//indicates if player wants to draw new card (T?F)
+	//indicates if player wants to draw new card (T/F)
+	//NOTE: Pure virtual method, so means derived classes MUST implement this function!
 	virtual bool isDrawing() const = 0;
 
-	//returns if busted or not (T/F)
+	//returns if busted or not (T if sum <=21, F if >21)
 	virtual bool isBusted()
 	{
 		return aHand.getTotal() > 21;
@@ -239,19 +250,19 @@ public:
 class ComputerPlayer: public AbstractPlayer
 {
 public:
-	//constructor
+	//constructor (default)
 	ComputerPlayer()
 	{
 		// cout<<"Computer constructor"<<endl;
 	}
 
-	//destructor
+	//destructor (default)
 	~ComputerPlayer()
 	{
 		// cout<<"Computer destructor"<<endl;
 	}
 
-	// check if is drawing TO DO
+	// check if is drawing (T if sum <=16, F if sum > 16)
 	bool isDrawing() const
 	{
 		if(aHand.getTotal() <= 16)
@@ -264,7 +275,7 @@ public:
 	//get total for computer
 	int getTotal()
 	{
-		return aHand.getTotal();
+		return aHand.getTotal(); // calls getTotal() method in Hand class
 	}
 
 	//get hand (for drawing)
@@ -288,20 +299,20 @@ ostream& operator<<(ostream& os, const ComputerPlayer &pComputer)
 class HumanPlayer: public AbstractPlayer
 {
 public:
-	//constructor
+	//constructor (default)
 	HumanPlayer()
 	{
 		// cout<<"Human constructor"<<endl;
 	}
 
-	//destructor
+	//destructor (default)
 	~HumanPlayer()
 	{
 		// cout<<"Human destructor"<<endl;
 	}
 
 	//checks if want to continue drawing... 
-	bool isDrawing() const  // TO DO
+	bool isDrawing() const 
 	{
 		char answer; 
 		while(true)
@@ -326,7 +337,7 @@ public:
 		}
 	}
 
-	//announce
+	//announces who won and why (if bust or push)
 	void announce(ComputerPlayer pPlayer)
 	{
 		if (this->isBusted()) // casino wins b/c player busts
@@ -366,11 +377,13 @@ private:
 	ComputerPlayer m_casino;
 	HumanPlayer m_client;
 public:
-	//constructor
+	//constructor (default)
 	BlackJackGame()
 	{
 		// cout<<"BJ const"<<endl;
-	}
+	} 
+
+	// destructor (default)
 	~BlackJackGame()
 	{
 		// cout<<"BJ destruct"<<endl;
@@ -391,16 +404,14 @@ public:
 	void play()
 	{
 		initialize();
+
 		// 1 card for casino
-		m_casino.getHand().add(Card(Rank(EIGHT), Type(SPADES)));
-		// m_deck.deal(m_casino.getHand());
+		m_deck.deal(m_casino.getHand()); // ADD BACK
 		cout<<m_casino;
 
 		// 2 cards for player
-		m_client.getHand().add(Card(Rank(FOUR), Type(CLUBS)));
-		m_client.getHand().add(Card(Rank(NINE), Type(HEARTS)));
-		// m_deck.deal(m_client.getHand());
-		// m_deck.deal(m_client.getHand());
+		m_deck.deal(m_client.getHand()); //ADD BACK
+		m_deck.deal(m_client.getHand());//ADD BACK
 		cout<<m_client;
 
 		//ask if want to draw
@@ -408,18 +419,12 @@ public:
 		bool busted = false;
 		int i = 0;
 
-		// let player draw as long as they want
+		// let player draw as long as they want (OR until they hit 21, because then they cannot get better)
 		while (m_client.isDrawing())
 		{
-			if(i == 0)
-				m_client.getHand().add(Card(Rank(SEVEN), Type(DIAMONDS)));
-			else if (i==1)
-				m_client.getHand().add(Card(Rank(ACE), Type(HEARTS)));
-			else if (i==2)
-				m_client.getHand().add(Card(Rank(FOUR), Type(HEARTS)));
-			// m_deck.deal(m_client.getHand());
+			m_deck.deal(m_client.getHand()); 
 			cout<<m_client;
-			i++;
+
 			// if drawing leads to bust, stop drawing and end game...
 			if (m_client.isBusted())
 			{
@@ -439,19 +444,8 @@ public:
 			cout<<"Casino drawing..."<<endl;
 			while(m_casino.isDrawing() && !m_casino.isBusted())
 			{
-				if (i==0)
-					m_casino.getHand().add(Card(Rank(EIGHT), Type(HEARTS)));
-				else if (i==1)
-					m_casino.getHand().add(Card(Rank(NINE), Type(SPADES)));
-				else if (i==2)
-					m_casino.getHand().add(Card(Rank(KING), Type(SPADES)));
-				else if (i==3)
-					m_casino.getHand().add(Card(Rank(ACE), Type(SPADES)));
-				else if (i==4)
-					m_casino.getHand().add(Card(Rank(ACE), Type(SPADES)));
-				// m_deck.deal(m_casino.getHand());
+				m_deck.deal(m_casino.getHand()); // addback
 				cout<<m_casino;
-				i++;
 			}
 			m_client.announce(m_casino);
 			return;
@@ -461,48 +455,6 @@ public:
 
 int main()
 {
-	
-// 	Card test = Card(Rank(TWO), Type(DIAMONDS));
-// 	Card test2 = Card(Rank(ACE), Type(DIAMONDS));
-// 	// cout<<test;
-// 	test.displayCard();
-// 	cout<<endl;
-	// Hand newHand = Hand();
-	// cout<<"hand SIZE: "<<newHand.size()<<endl;
-	// Deck newDeck = Deck();
-	// newDeck.populate();
-	// newDeck.size();
-	// newDeck.shuffle();
-	// cout<<"deck SIZE: "<<newDeck.size()<<endl;
-	// newHand.view();
-	// cout<<"here"<<endl;
-	// newDeck.deal(newHand);
-	// newHand.view();
-	// cout<<endl;
-	// newDeck.deal(newHand);
-	// newHand.view();
-	// cout<<endl;
-	// cout<<newDeck.size();
-
-	// ComputerPlayer comp = ComputerPlayer();
-	// HumanPlayer hum = HumanPlayer();
-	// Deck newDeck = Deck();
-	// newDeck.populate();
-	// newDeck.shuffle();
-	// cout<<newDeck.size()<<endl;
-	// newDeck.deal(comp.getHand());
-	// cout<<newDeck.size()<<endl;
-	// comp.getHand().view();
-	// cout<<comp.getTotal();
-	// cout<<endl;
-	// newDeck.deal(comp.getHand());
-	// cout<<newDeck.size()<<endl;
-	// comp.getHand().view();
-	// cout<<comp.getTotal();
-	// cout<<endl;
-	// hum.announce(comp);
-
-
 	cout << "\tWelcome to the COMP322 Blackjack game!" << endl << endl;
 	BlackJackGame game;
 
@@ -515,9 +467,30 @@ int main()
 
 		// Check whether the player would like to play another round
 		cout<<"----------------"<<endl;
-		cout << "Would you like another round? (y/n): ";
-		cin >> answer;
-		playAgain = (answer == 'y' ? true : false);
+		playAgain = false;
+		bool invalidAnswer = true;
+		while(invalidAnswer)
+		{
+			cout << "Would you like another round? (y/n): ";
+			cin >> answer;
+			if (answer == 'y' || answer == 'Y')
+			{
+				playAgain = true;
+				invalidAnswer = false;
+			}
+			else if (answer == 'n' || answer == 'N')
+			{
+				playAgain = false;
+				invalidAnswer = false;
+			}
+			else
+			{
+				cout<<"Invalid input. Please try again."<<endl;
+				cin.clear();
+				fflush(stdin);
+				//loops until either returns true or false...
+			}
+		}
 	}
 
 	cout<<"Game over!"<<endl;
